@@ -54,7 +54,7 @@ var client_db = new AmazonDynamoDBClient(awsCredentials, RegionEndpoint.APSouthe
 var PriceNicehash = await GetPriceNicehashAsync();
 var PriceIndodax = await GetPriceIndodaxAsync();
 
-///* * Insert Data Coin
+/* * Insert Data Coin
 
 if (PriceNicehash != null || PriceIndodax != null)
 {
@@ -114,17 +114,17 @@ if (PriceNicehash != null || PriceIndodax != null)
 
 /* Baca Data Coin */
 
-var data = GetLast2HoursCoinPrice(client_db, "LTC");
+var data = await GetLast2HoursCoinPriceAsync(client_db, "LTC");
 
 /* End Baca Data Coin */
-
+Console.WriteLine();
 
 async Task InsertCoin(IAmazonDynamoDB client, string CoinCode, decimal? usdt, decimal? btc, int? idr)
 {
     string TableName = "CoinPrice";
     await CreateTableIfExist(client, TableName);
 
-    var LastPrice = await GetLastCoinPrice(client, CoinCode);
+    var LastPrice = await GetLastCoinPriceAsync(client, CoinCode);
     if (LastPrice.USDT == usdt && LastPrice.BTC == btc && LastPrice.IDR == idr)
     {
         await _telegram.SendMessageAsync(DATE_NOW.ToString("yyyyMMddHHmmss") + "\n" +
@@ -154,7 +154,7 @@ async Task InsertCoin(IAmazonDynamoDB client, string CoinCode, decimal? usdt, de
     }
 }
 
-async Task<CoinPrice> GetLastCoinPrice(IAmazonDynamoDB client, string CoinCode)
+async Task<CoinPrice> GetLastCoinPriceAsync(IAmazonDynamoDB client, string CoinCode)
 {
     CoinPrice LatestPrice = new();
 
@@ -191,8 +191,9 @@ async Task<CoinPrice> GetLastCoinPrice(IAmazonDynamoDB client, string CoinCode)
     return LatestPrice;
 }
 
-async Task<List<CoinPrice>> GetLast2HoursCoinPrice(IAmazonDynamoDB client, string CoinCode)
+async Task<List<CoinPrice>> GetLast2HoursCoinPriceAsync(IAmazonDynamoDB client, string CoinCode)
 {
+    List<CoinPrice> TwoHoursCoinPrice = new();
     try
     {
         Console.WriteLine("============================================================================");
@@ -201,14 +202,15 @@ async Task<List<CoinPrice>> GetLast2HoursCoinPrice(IAmazonDynamoDB client, strin
         var search = _context.ScanAsync<CoinPrice>(
             new[] {
             new ScanCondition("CoinCode",ScanOperator.Equal,CoinCode),
-            new ScanCondition("DateString",ScanOperator.GreaterThanOrEqual,DATE_NOW.ToString("yyyyMMddHHmmss"))
+            new ScanCondition("DateString",ScanOperator.GreaterThanOrEqual,DATE_NOW.AddHours(-2).ToString("yyyyMMddHHmmss"))
             });
-        var result = await search.GetRemainingAsync();
-        return result;
+        TwoHoursCoinPrice = await search.GetRemainingAsync();
     }
     catch (AmazonDynamoDBException e) { Console.WriteLine(e.Message); }
     catch (AmazonServiceException e) { Console.WriteLine(e.Message); }
     catch (Exception e) { Console.WriteLine(e.Message); }
+
+    return TwoHoursCoinPrice;
 }
 
 static async Task CreateTableIfExist(IAmazonDynamoDB client, string tableName)
