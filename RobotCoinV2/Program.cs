@@ -8,18 +8,24 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RobotCoinV2;
 
-//EnvironmentVariableTarget dihilangkan kalau deploy di linux
-var TELEGRAM_TOKEN_BOT = Environment.GetEnvironmentVariable("TELEGRAM_TOKEN_BOT", EnvironmentVariableTarget.User);
-var TELEGRAM_CHATID_ERROR = Environment.GetEnvironmentVariable("TELEGRAM_CHATID_ERROR", EnvironmentVariableTarget.User);
-var TELEGRAM_CHATID_STATUS = Environment.GetEnvironmentVariable("TELEGRAM_CHATID_STATUS", EnvironmentVariableTarget.User);
-var TELEGRAM_CHATID_INFO = Environment.GetEnvironmentVariable("TELEGRAM_CHATID_INFO", EnvironmentVariableTarget.User);
+var setttings = new Settings();
+var TELEGRAM_TOKEN_BOT = setttings.TELEGRAM_TOKEN_BOT;
+var TELEGRAM_CHATID_ERROR = setttings.TELEGRAM_CHATID_ERROR;
+var TELEGRAM_CHATID_STATUS = setttings.TELEGRAM_CHATID_STATUS;
+var TELEGRAM_CHATID_INFO = setttings.TELEGRAM_CHATID_INFO;
 
-var INDODAX_PRICE_URL = Environment.GetEnvironmentVariable("INDODAX_PRICE_URL", EnvironmentVariableTarget.User);
-var NICEHASH_PRICE_URL = Environment.GetEnvironmentVariable("NICEHASH_PRICE_URL", EnvironmentVariableTarget.User);
+var INDODAX_PRICE_URL = setttings.INDODAX_PRICE_URL;
+var NICEHASH_PRICE_URL = setttings.NICEHASH_PRICE_URL;
 
-var AWS_ACCESS_KEY = Environment.GetEnvironmentVariable("AWS_ACCESS_KEY", EnvironmentVariableTarget.User);
-var AWS_SECRET_KEY = Environment.GetEnvironmentVariable("AWS_SECRET_KEY", EnvironmentVariableTarget.User);
+var AWS_ACCESS_KEY = setttings.AWS_ACCESS_KEY;
+var AWS_SECRET_KEY = setttings.AWS_SECRET_KEY;
+
+var GAP_NAIK = setttings.GAP_NAIK;
+var GAP_TURUN = setttings.GAP_TURUN;
+var LAST_HOUR = setttings.LAST_HOUR;
+
 DateTime DATE_NOW = DateTime.Now;
+
 TelegramBot _telegram = new(TELEGRAM_TOKEN_BOT, TELEGRAM_CHATID_ERROR, TELEGRAM_CHATID_STATUS, TELEGRAM_CHATID_INFO);
 
 if (AWS_ACCESS_KEY == null || AWS_SECRET_KEY == null)
@@ -54,7 +60,7 @@ var client_db = new AmazonDynamoDBClient(awsCredentials, RegionEndpoint.APSouthe
 var PriceNicehash = await GetPriceNicehashAsync();
 var PriceIndodax = await GetPriceIndodaxAsync();
 
-/* * Insert Data Coin
+///* Insert Data Coin
 
 if (PriceNicehash != null || PriceIndodax != null)
 {
@@ -109,14 +115,52 @@ if (PriceNicehash != null || PriceIndodax != null)
     if (PriceNicehash?.XRPUSDT > 0 || PriceNicehash?.XRPBTC > 0 || PriceIndodax?.xrp_idr > 0)
         await InsertCoin(client_db, "XRP", PriceNicehash?.XRPUSDT, PriceNicehash?.XRPBTC, PriceIndodax?.xrp_idr);
 
+    Thread.Sleep(500); // sleep 3s biar bisa terbaca data yang baru diinsert
 }
-//End Insert Data Coin */
+//End Insert Data Coin  */
 
-/* Baca Data Coin */
+///* Baca Data Coin 
+var data_coin = await GetLast2HoursCoinPriceAsync(client_db);
+Console.WriteLine($"Jlh Data = {data_coin.Count}");
 
-var data = await GetLast2HoursCoinPriceAsync(client_db, "LTC");
+if (data_coin.Count > 0)
+{
+    Decimal percentGapBTC;
+    Decimal percentGapUSDT;
+    Decimal percentGapIDR;
+    string pesan = "";
+    foreach (var _coin in setttings.FavoriteCoinList)
+    {
+        percentGapBTC = 0.0M;
+        percentGapUSDT = 0.0M;
+        percentGapIDR = 0.0M;
+        var currentPrice = data_coin.Where(x => x.CoinCode == _coin).OrderByDescending(x => x.DateString).FirstOrDefault();
+        var lastPrice = data_coin.Where(x => x.CoinCode == _coin).OrderBy(x => x.DateString).FirstOrDefault();
+
+        if (currentPrice?.BTC > 0 && lastPrice?.BTC > 0) percentGapIDR = (currentPrice.BTC - lastPrice.BTC) / lastPrice.BTC * 100;
+        if (currentPrice?.USDT > 0 && lastPrice?.USDT > 0) percentGapUSDT = (currentPrice.USDT - lastPrice.USDT) / lastPrice.USDT * 100;
+        if (currentPrice?.IDR > 0 && lastPrice?.IDR > 0) percentGapIDR = (currentPrice.IDR - lastPrice.IDR) / lastPrice.IDR * 100;
+
+        if (percentGapBTC <= GAP_TURUN || percentGapBTC >= GAP_NAIK || percentGapUSDT <= GAP_TURUN || percentGapUSDT >= GAP_NAIK || percentGapIDR <= GAP_TURUN || percentGapIDR >= GAP_NAIK)
+            pesan += $"{(string.IsNullOrEmpty(pesan) ? "" : "\n\n")}<b>{_coin}</b> curs ";
+
+        if (percentGapBTC <= GAP_TURUN || percentGapBTC >= GAP_NAIK)
+            pesan += $"\n<b>{(percentGapBTC < 0 ? "<u>" : "")}BTC={percentGapBTC.ToString()[..Math.Min(5, percentGapBTC.ToString().Length)]}% {(percentGapBTC < 0 ? "</u>" : "")}</b>\n" +
+                $"currPrice={currentPrice?.BTC} \nlast {Math.Abs(LAST_HOUR)}hours Price={lastPrice?.BTC}";
+
+        if (percentGapUSDT <= GAP_TURUN || percentGapUSDT >= GAP_NAIK)
+            pesan += $"\n<b>{(percentGapUSDT < 0 ? "<u>" : "")}USDT={percentGapUSDT.ToString()[..Math.Min(5, percentGapUSDT.ToString().Length)]}% {(percentGapUSDT < 0 ? "</u>" : "")}</b>\n" +
+                $"currPrice={currentPrice?.USDT} \nlast {Math.Abs(LAST_HOUR)}hours Price={lastPrice?.USDT}";
+
+        if (percentGapIDR <= GAP_TURUN || percentGapIDR >= GAP_NAIK)
+            pesan += $"\n<b>{(percentGapIDR < 0 ? "<u>" : "")}IDR={percentGapIDR.ToString()[..Math.Min(5, percentGapIDR.ToString().Length)]}% {(percentGapIDR < 0 ? "</u>" : "")}</b>\n" +
+                $"currPrice={currentPrice?.IDR:n0} \nlast {Math.Abs(LAST_HOUR)}hours Price={lastPrice?.IDR:n0}";
+    }
+    if (!string.IsNullOrEmpty(pesan)) await _telegram.SendMessageAsync(pesan);
+}
 
 /* End Baca Data Coin */
+await _telegram.SendStatusAsync("Finish =>" + DATE_NOW.ToString("dd MMM yyyy HH:mm:ss") + $" >> " + DATE_NOW.ToString("yyyyMMddHHmmss"));
 Console.WriteLine();
 
 async Task InsertCoin(IAmazonDynamoDB client, string CoinCode, decimal? usdt, decimal? btc, int? idr)
@@ -125,13 +169,7 @@ async Task InsertCoin(IAmazonDynamoDB client, string CoinCode, decimal? usdt, de
     await CreateTableIfExist(client, TableName);
 
     var LastPrice = await GetLastCoinPriceAsync(client, CoinCode);
-    if (LastPrice.USDT == usdt && LastPrice.BTC == btc && LastPrice.IDR == idr)
-    {
-        await _telegram.SendMessageAsync(DATE_NOW.ToString("yyyyMMddHHmmss") + "\n" +
-            $"{CoinCode} >> nilainya sebelumnya {LastPrice.USDT} | {LastPrice.BTC} | {LastPrice.IDR}" + "\n"
-            + $"{CoinCode} >> nilainya insert {usdt} | {btc} | {idr}");
-        return;
-    }
+    if (LastPrice.USDT == usdt && LastPrice.BTC == btc && LastPrice.IDR == idr) return;
 
     ///// write data to table
     try
@@ -162,8 +200,7 @@ async Task<CoinPrice> GetLastCoinPriceAsync(IAmazonDynamoDB client, string CoinC
     {
         TableName = "CoinPrice",
         KeyConditionExpression = $"CoinCode = :vCoinCode",
-        ExpressionAttributeValues = new Dictionary<string, AttributeValue> {
-                            { ":vCoinCode", new AttributeValue { S = CoinCode } } },
+        ExpressionAttributeValues = new Dictionary<string, AttributeValue> { { ":vCoinCode", new AttributeValue { S = CoinCode } } },
         // Optional parameter.
         ConsistentRead = true,
         Limit = 1,
@@ -185,25 +222,19 @@ async Task<CoinPrice> GetLastCoinPriceAsync(IAmazonDynamoDB client, string CoinC
                 if (kvp.Key.ToUpper() == "BTC") LatestPrice.BTC = decimal.Parse(kvp.Value.N);
                 if (kvp.Key.ToUpper() == "IDR") LatestPrice.IDR = Int32.Parse(kvp.Value.N);
             }
-            Console.WriteLine("************************************************");
         }
     }
     return LatestPrice;
 }
 
-async Task<List<CoinPrice>> GetLast2HoursCoinPriceAsync(IAmazonDynamoDB client, string CoinCode)
+async Task<List<CoinPrice>> GetLast2HoursCoinPriceAsync(IAmazonDynamoDB client)
 {
     List<CoinPrice> TwoHoursCoinPrice = new();
     try
     {
-        Console.WriteLine("============================================================================");
         DynamoDBContext _context;
         _context = new DynamoDBContext(client, new DynamoDBContextConfig { ConsistentRead = true });
-        var search = _context.ScanAsync<CoinPrice>(
-            new[] {
-            new ScanCondition("CoinCode",ScanOperator.Equal,CoinCode),
-            new ScanCondition("DateString",ScanOperator.GreaterThanOrEqual,DATE_NOW.AddHours(-2).ToString("yyyyMMddHHmmss"))
-            });
+        var search = _context.ScanAsync<CoinPrice>(new[] { new ScanCondition("DateString", ScanOperator.GreaterThanOrEqual, DATE_NOW.AddHours(LAST_HOUR).ToString("yyyyMMddHHmmss")) });
         TwoHoursCoinPrice = await search.GetRemainingAsync();
     }
     catch (AmazonDynamoDBException e) { Console.WriteLine(e.Message); }
