@@ -30,25 +30,25 @@ TelegramBot _telegram = new(TELEGRAM_TOKEN_BOT, TELEGRAM_CHATID_ERROR, TELEGRAM_
 
 if (AWS_ACCESS_KEY == null || AWS_SECRET_KEY == null)
 {
-    Console.WriteLine("accessKey or secretKey is null");
+    await _telegram.SendErrorAsync(DATE_NOW.ToString("yyyyMMddHHmmss") + "\naccessKey or secretKey is null");
     Environment.Exit(0);
 }
 
 if (INDODAX_PRICE_URL == null)
 {
-    Console.WriteLine("IndodaxPriceUrl is null");
+    await _telegram.SendErrorAsync(DATE_NOW.ToString("yyyyMMddHHmmss") + "\nIndodaxPriceUrl is null");
     Environment.Exit(0);
 }
 
 if (NICEHASH_PRICE_URL == null)
 {
-    Console.WriteLine("Nicehash Env is null");
+    await _telegram.SendErrorAsync(DATE_NOW.ToString("yyyyMMddHHmmss") + "\nNicehash Env is null");
     Environment.Exit(0);
 }
 
 if (TELEGRAM_TOKEN_BOT == null || TELEGRAM_CHATID_ERROR == null || TELEGRAM_CHATID_STATUS == null || TELEGRAM_CHATID_INFO == null)
 {
-    Console.WriteLine("Telegram Key is null");
+    await _telegram.SendErrorAsync(DATE_NOW.ToString("yyyyMMddHHmmss") + "\nTelegram Key is null");
     Environment.Exit(0);
 }
 
@@ -121,7 +121,6 @@ if (PriceNicehash != null || PriceIndodax != null)
 
 ///* Baca Data Coin 
 var data_coin = await GetLast2HoursCoinPriceAsync(client_db);
-Console.WriteLine($"Jlh Data = {data_coin.Count}");
 
 if (data_coin.Count > 0)
 {
@@ -161,7 +160,6 @@ if (data_coin.Count > 0)
 
 /* End Baca Data Coin */
 await _telegram.SendStatusAsync("Finish =>" + DATE_NOW.ToString("dd MMM yyyy HH:mm:ss") + $" >> " + DATE_NOW.ToString("yyyyMMddHHmmss"));
-Console.WriteLine();
 
 async Task InsertCoin(IAmazonDynamoDB client, string CoinCode, decimal? usdt, decimal? btc, int? idr)
 {
@@ -187,7 +185,6 @@ async Task InsertCoin(IAmazonDynamoDB client, string CoinCode, decimal? usdt, de
     }
     catch (Exception ex)
     {
-        Console.WriteLine(ex.ToString());
         await _telegram.SendErrorAsync("Tgl =>" + DATE_NOW.ToString("dd MMM yyyy HH:mm:ss") + "\n" + (ex.InnerException?.Message ?? ex.Message));
     }
 }
@@ -237,14 +234,15 @@ async Task<List<CoinPrice>> GetLast2HoursCoinPriceAsync(IAmazonDynamoDB client)
         var search = _context.ScanAsync<CoinPrice>(new[] { new ScanCondition("DateString", ScanOperator.GreaterThanOrEqual, DATE_NOW.AddHours(LAST_HOUR).ToString("yyyyMMddHHmmss")) });
         TwoHoursCoinPrice = await search.GetRemainingAsync();
     }
-    catch (AmazonDynamoDBException e) { Console.WriteLine(e.Message); }
-    catch (AmazonServiceException e) { Console.WriteLine(e.Message); }
-    catch (Exception e) { Console.WriteLine(e.Message); }
+    catch (Exception e)
+    {
+        await _telegram.SendErrorAsync(DATE_NOW.ToString("yyyyMMddHHmmss") + "\n" + (e.InnerException?.Message ?? e.Message));
+    }
 
     return TwoHoursCoinPrice;
 }
 
-static async Task CreateTableIfExist(IAmazonDynamoDB client, string tableName)
+async Task CreateTableIfExist(IAmazonDynamoDB client, string tableName)
 {
     try
     {
@@ -252,7 +250,7 @@ static async Task CreateTableIfExist(IAmazonDynamoDB client, string tableName)
     }
     catch
     {
-        Console.WriteLine("Create Table >> " + tableName);
+        await _telegram.SendErrorAsync("Create Table >> " + tableName);
         await CreateTable(client, tableName);
     }
 }
