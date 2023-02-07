@@ -136,9 +136,9 @@ if (data_coin.Count > 0)
         var currentPrice = data_coin.Where(x => x.CoinCode == _coin).OrderByDescending(x => x.DateString).FirstOrDefault();
         var lastPrice = data_coin.Where(x => x.CoinCode == _coin).OrderBy(x => x.DateString).FirstOrDefault();
 
-        if (currentPrice?.BTC > 0 && lastPrice?.BTC > 0) percentGapIDR = (currentPrice.BTC - lastPrice.BTC) / lastPrice.BTC * 100;
-        if (currentPrice?.USDT > 0 && lastPrice?.USDT > 0) percentGapUSDT = (currentPrice.USDT - lastPrice.USDT) / lastPrice.USDT * 100;
-        if (currentPrice?.IDR > 0 && lastPrice?.IDR > 0) percentGapIDR = (currentPrice.IDR - lastPrice.IDR) / lastPrice.IDR * 100;
+        if (currentPrice?.BTC > 0 && lastPrice?.BTC > 0) percentGapIDR = ((currentPrice.BTC - lastPrice.BTC) / lastPrice.BTC) * 100;
+        if (currentPrice?.USDT > 0 && lastPrice?.USDT > 0) percentGapUSDT = ((currentPrice.USDT - lastPrice.USDT) / lastPrice.USDT) * 100;
+        if (currentPrice?.IDR > 0 && lastPrice?.IDR > 0) percentGapIDR = ((currentPrice.IDR - lastPrice.IDR) / (decimal)lastPrice.IDR) * 100;
 
         if (percentGapBTC <= GAP_TURUN || percentGapBTC >= GAP_NAIK || percentGapUSDT <= GAP_TURUN || percentGapUSDT >= GAP_NAIK || percentGapIDR <= GAP_TURUN || percentGapIDR >= GAP_NAIK)
             pesan += $"{(string.IsNullOrEmpty(pesan) ? "" : "\n\n")}<b>{_coin}</b> curs ";
