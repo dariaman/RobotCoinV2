@@ -145,15 +145,15 @@ if (data_coin.Count > 0)
 
         if (percentGapBTC <= GAP_TURUN || percentGapBTC >= GAP_NAIK)
             pesan += $"\n<b>{(percentGapBTC < 0 ? "<u>" : "")}BTC={percentGapBTC.ToString()[..Math.Min(5, percentGapBTC.ToString().Length)]}% {(percentGapBTC < 0 ? "</u>" : "")}</b>\n" +
-                $"currPrice={currentPrice?.BTC} \nlast {Math.Abs(LAST_HOUR)}hours Price={lastPrice?.BTC}";
+                $"currPrice={currentPrice?.BTC} \nlast <b>({Math.Abs(LAST_HOUR)})</b> hours Price={lastPrice?.BTC}";
 
         if (percentGapUSDT <= GAP_TURUN || percentGapUSDT >= GAP_NAIK)
             pesan += $"\n<b>{(percentGapUSDT < 0 ? "<u>" : "")}USDT={percentGapUSDT.ToString()[..Math.Min(5, percentGapUSDT.ToString().Length)]}% {(percentGapUSDT < 0 ? "</u>" : "")}</b>\n" +
-                $"currPrice={currentPrice?.USDT} \nlast {Math.Abs(LAST_HOUR)}hours Price={lastPrice?.USDT}";
+                $"currPrice={currentPrice?.USDT} \nlast <b>({Math.Abs(LAST_HOUR)})</b> hours Price={lastPrice?.USDT}";
 
         if (percentGapIDR <= GAP_TURUN || percentGapIDR >= GAP_NAIK)
             pesan += $"\n<b>{(percentGapIDR < 0 ? "<u>" : "")}IDR={percentGapIDR.ToString()[..Math.Min(5, percentGapIDR.ToString().Length)]}% {(percentGapIDR < 0 ? "</u>" : "")}</b>\n" +
-                $"currPrice={currentPrice?.IDR:n0} \nlast {Math.Abs(LAST_HOUR)}hours Price={lastPrice?.IDR:n0}";
+                $"currPrice={currentPrice?.IDR:n0} \nlast <b>({Math.Abs(LAST_HOUR)})</b> hours Price={lastPrice?.IDR:n0}";
     }
     if (!string.IsNullOrEmpty(pesan)) await _telegram.SendMessageAsync(pesan);
 }
