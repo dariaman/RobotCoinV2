@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace RobotCoinV2
+﻿namespace RobotCoinV2
 {
     class Settings
     {
@@ -19,6 +13,8 @@ namespace RobotCoinV2
 
         public string? AWS_ACCESS_KEY = Environment.GetEnvironmentVariable("AWS_ACCESS_KEY", EnvironmentVariableTarget.User);
         public string? AWS_SECRET_KEY = Environment.GetEnvironmentVariable("AWS_SECRET_KEY", EnvironmentVariableTarget.User);
+
+        public string? LIST_COIN_NOTIF = Environment.GetEnvironmentVariable("LIST_COIN_NOTIF", EnvironmentVariableTarget.User);
 
         public int GAP_NAIK = int.Parse(Environment.GetEnvironmentVariable("GAP_NAIK", EnvironmentVariableTarget.User) ?? "5");
         public int GAP_TURUN = int.Parse(Environment.GetEnvironmentVariable("GAP_TURUN", EnvironmentVariableTarget.User) ?? "5") * -1;
@@ -44,5 +40,11 @@ namespace RobotCoinV2
             "UNI",
             "XRP",
         };
+
+        public Settings()
+        {
+            if (LIST_COIN_NOTIF == null)
+                foreach (var item in FavoriteCoinList) LIST_COIN_NOTIF += $"{item},";
+        }
     }
 }
