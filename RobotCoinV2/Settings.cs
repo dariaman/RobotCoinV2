@@ -17,13 +17,12 @@ namespace RobotCoinV2
         public string? INDODAX_PRICE_URL = Environment.GetEnvironmentVariable("INDODAX_PRICE_URL");
         public string? NICEHASH_PRICE_URL = Environment.GetEnvironmentVariable("NICEHASH_PRICE_URL");
 
+        public int GAP_NAIK;
+        public int GAP_TURUN;
+        public int LAST_HOUR;
 
-        public int GAP_NAIK = int.Parse(Environment.GetEnvironmentVariable("GAP_NAIK") ?? "0");
-        public int GAP_TURUN = int.Parse(Environment.GetEnvironmentVariable("GAP_TURUN") ?? "0");
-        public int LAST_HOUR = int.Parse(Environment.GetEnvironmentVariable("LAST_HOUR") ?? "0");
-
-        string? LIST_COIN_NOTIF = Environment.GetEnvironmentVariable("LIST_COIN_NOTIF");
-        string? FAVORITE_COIN_LIST = Environment.GetEnvironmentVariable("FAVORITE_COIN_LIST");
+        string? LIST_COIN_NOTIF = Environment.GetEnvironmentVariable("LIST_COfgjhIN_NOTIF");
+        string? FAVORITE_COIN_LIST = Environment.GetEnvironmentVariable("FAVORIfgjhTE_COIN_LIST");
 
         public List<string>? FavoriteCoinList;
         public List<string>? ListCoinNotif;

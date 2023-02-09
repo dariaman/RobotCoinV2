@@ -26,6 +26,9 @@ var LAST_HOUR = setttings.LAST_HOUR;
 
 DateTime DATE_NOW = DateTime.Now;
 
+var ListCoinNotif = setttings.ListCoinNotif;
+setttings = null;
+
 TelegramBot _telegram = new(TELEGRAM_TOKEN_BOT, TELEGRAM_CHATID_ERROR, TELEGRAM_CHATID_STATUS, TELEGRAM_CHATID_INFO);
 
 if (AWS_ACCESS_KEY == null || AWS_SECRET_KEY == null)
@@ -64,20 +67,19 @@ var last_data_coin = await GetLastTimeCoinPriceAsync(client_db);
 
 if (_coinPrice != null)
     await InsertPriceCoinAsync(client_db, _coinPrice);
-
+_coinPrice = null;
 
 //End Insert Data Coin  */
 
 ///* Baca Data Coin 
-
 if (last_data_coin.Count > 0)
 {
     Decimal percentGapBTC;
     Decimal percentGapUSDT;
     Decimal percentGapIDR;
     string pesan = "";
-    if (setttings.ListCoinNotif != null)
-        foreach (var _coin in setttings.ListCoinNotif)
+    if (ListCoinNotif != null)
+        foreach (var _coin in ListCoinNotif)
         {
             if (string.IsNullOrEmpty(_coin)) continue;
 
@@ -261,13 +263,20 @@ async Task<List<CoinPrice>?> GetCoinPriceAsync()
             };
 
             // ambil nilai USDT dari data nicehash
-            var _temp = (decimal?)((JProperty)((JContainer)_data_price2)
-                .Where(x => x.Path == item.ToUpper() + "USDT").FirstOrDefault())?.Value;
+            decimal? _temp;
+            if (item.ToUpper() == "INCH")
+                _temp = (decimal?)((JProperty)((JContainer)_data_price2).Where(x => x.Path == "ONEINCHUSDT").FirstOrDefault())?.Value;
+            else
+                _temp = (decimal?)((JProperty)((JContainer)_data_price2).Where(x => x.Path == item.ToUpper() + "USDT").FirstOrDefault())?.Value;
+
             if (_temp != null) coinPrice.USDT = _temp ?? 0;
 
             // ambil nilai BTC dari data nicehash
-            _temp = (decimal?)((JProperty)((JContainer)_data_price2)
-                .Where(x => x.Path == item.ToUpper() + "BTC").FirstOrDefault())?.Value;
+            if (item.ToUpper() == "INCH")
+                _temp = (decimal?)((JProperty)((JContainer)_data_price2).Where(x => x.Path == "ONEINCHBTC").FirstOrDefault())?.Value;
+            else
+                _temp = (decimal?)((JProperty)((JContainer)_data_price2).Where(x => x.Path == item.ToUpper() + "BTC").FirstOrDefault())?.Value;
+
             if (_temp != null) coinPrice.BTC = _temp ?? 0;
 
             // ambil nilai IDR dari data indodax
@@ -282,5 +291,10 @@ async Task<List<CoinPrice>?> GetCoinPriceAsync()
 
         return listCoinPrice;
     }
-    catch { throw; }
+    catch (Exception ex)
+    {
+        await _telegram.SendErrorAsync("Tgl =>" + DATE_NOW.ToString("dd MMM yyyy HH:mm:ss") + "\n" + (ex.InnerException?.Message ?? ex.Message));
+        throw;
+    }
 }
+
