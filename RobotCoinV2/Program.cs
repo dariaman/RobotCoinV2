@@ -65,52 +65,65 @@ var _coinPrice = await GetCoinPriceAsync();
 ///* Insert Data Coin
 var last_data_coin = await GetLastTimeCoinPriceAsync(client_db);
 
-if (_coinPrice != null)
-    await InsertPriceCoinAsync(client_db, _coinPrice);
+try
+{
+    if (_coinPrice != null) await InsertPriceCoinAsync(client_db, _coinPrice);
+}
+catch (Exception ex)
+{
+    await _telegram.SendErrorAsync(DATE_NOW.ToString("yyyyMMddHHmmss") + "\nError Insert Price\n" + (ex.InnerException?.Message ?? ex.Message));
+}
+
 _coinPrice = null;
 
 //End Insert Data Coin  */
 
 ///* Baca Data Coin 
-if (last_data_coin.Count > 0)
+try
 {
-    Decimal percentGapBTC;
-    Decimal percentGapUSDT;
-    Decimal percentGapIDR;
-    string pesan = "";
-    if (ListCoinNotif != null)
-        foreach (var _coin in ListCoinNotif)
-        {
-            if (string.IsNullOrEmpty(_coin)) continue;
+    if (last_data_coin.Count > 0)
+    {
+        Decimal percentGapBTC;
+        Decimal percentGapUSDT;
+        Decimal percentGapIDR;
+        string pesan = "";
+        if (ListCoinNotif != null)
+            foreach (var _coin in ListCoinNotif)
+            {
+                if (string.IsNullOrEmpty(_coin)) continue;
 
-            percentGapBTC = 0.0M;
-            percentGapUSDT = 0.0M;
-            percentGapIDR = 0.0M;
-            var currentPrice = last_data_coin.Where(x => x.CoinCode == _coin).OrderByDescending(x => x.DateString).FirstOrDefault();
-            var lastPrice = last_data_coin.Where(x => x.CoinCode == _coin).OrderBy(x => x.DateString).FirstOrDefault();
+                percentGapBTC = 0.0M;
+                percentGapUSDT = 0.0M;
+                percentGapIDR = 0.0M;
+                var currentPrice = last_data_coin.Where(x => x.CoinCode == _coin).OrderByDescending(x => x.DateString).FirstOrDefault();
+                var lastPrice = last_data_coin.Where(x => x.CoinCode == _coin).OrderBy(x => x.DateString).FirstOrDefault();
 
-            if (currentPrice?.BTC > 0 && lastPrice?.BTC > 0) percentGapIDR = ((currentPrice.BTC - lastPrice.BTC) / lastPrice.BTC) * 100;
-            if (currentPrice?.USDT > 0 && lastPrice?.USDT > 0) percentGapUSDT = ((currentPrice.USDT - lastPrice.USDT) / lastPrice.USDT) * 100;
-            if (currentPrice?.IDR > 0 && lastPrice?.IDR > 0) percentGapIDR = ((currentPrice.IDR - lastPrice.IDR) / (decimal)lastPrice.IDR) * 100;
+                if (currentPrice?.BTC > 0 && lastPrice?.BTC > 0) percentGapIDR = ((currentPrice.BTC - lastPrice.BTC) / lastPrice.BTC) * 100;
+                if (currentPrice?.USDT > 0 && lastPrice?.USDT > 0) percentGapUSDT = ((currentPrice.USDT - lastPrice.USDT) / lastPrice.USDT) * 100;
+                if (currentPrice?.IDR > 0 && lastPrice?.IDR > 0) percentGapIDR = ((currentPrice.IDR - lastPrice.IDR) / (decimal)lastPrice.IDR) * 100;
 
-            if (percentGapBTC <= GAP_TURUN || percentGapBTC >= GAP_NAIK || percentGapUSDT <= GAP_TURUN || percentGapUSDT >= GAP_NAIK || percentGapIDR <= GAP_TURUN || percentGapIDR >= GAP_NAIK)
-                pesan += $"{(string.IsNullOrEmpty(pesan) ? "" : "\n\n")}<b>{_coin}</b> curs ";
+                if (percentGapBTC <= GAP_TURUN || percentGapBTC >= GAP_NAIK || percentGapUSDT <= GAP_TURUN || percentGapUSDT >= GAP_NAIK || percentGapIDR <= GAP_TURUN || percentGapIDR >= GAP_NAIK)
+                    pesan += $"{(string.IsNullOrEmpty(pesan) ? "" : "\n\n")}<b>{_coin}</b> curs ";
 
-            if (percentGapBTC <= GAP_TURUN || percentGapBTC >= GAP_NAIK)
-                pesan += $"\n<b>{(percentGapBTC < 0 ? "<u>" : "")}BTC={percentGapBTC.ToString()[..Math.Min(5, percentGapBTC.ToString().Length)]}% {(percentGapBTC < 0 ? "</u>" : "")}</b>\n" +
-                    $"currPrice={currentPrice?.BTC} \nlast <b>({Math.Abs(LAST_HOUR)})</b> hours Price={lastPrice?.BTC}";
+                if (percentGapBTC <= GAP_TURUN || percentGapBTC >= GAP_NAIK)
+                    pesan += $"\n<b>{(percentGapBTC < 0 ? "<u>" : "")}BTC={percentGapBTC.ToString()[..Math.Min(5, percentGapBTC.ToString().Length)]}% {(percentGapBTC < 0 ? "</u>" : "")}</b>\n" +
+                        $"currPrice={currentPrice?.BTC} \nlast <b>({Math.Abs(LAST_HOUR)})</b> hours Price={lastPrice?.BTC}";
 
-            if (percentGapUSDT <= GAP_TURUN || percentGapUSDT >= GAP_NAIK)
-                pesan += $"\n<b>{(percentGapUSDT < 0 ? "<u>" : "")}USDT={percentGapUSDT.ToString()[..Math.Min(5, percentGapUSDT.ToString().Length)]}% {(percentGapUSDT < 0 ? "</u>" : "")}</b>\n" +
-                    $"currPrice={currentPrice?.USDT} \nlast <b>({Math.Abs(LAST_HOUR)})</b> hours Price={lastPrice?.USDT}";
+                if (percentGapUSDT <= GAP_TURUN || percentGapUSDT >= GAP_NAIK)
+                    pesan += $"\n<b>{(percentGapUSDT < 0 ? "<u>" : "")}USDT={percentGapUSDT.ToString()[..Math.Min(5, percentGapUSDT.ToString().Length)]}% {(percentGapUSDT < 0 ? "</u>" : "")}</b>\n" +
+                        $"currPrice={currentPrice?.USDT} \nlast <b>({Math.Abs(LAST_HOUR)})</b> hours Price={lastPrice?.USDT}";
 
-            if (percentGapIDR <= GAP_TURUN || percentGapIDR >= GAP_NAIK)
-                pesan += $"\n<b>{(percentGapIDR < 0 ? "<u>" : "")}IDR={percentGapIDR.ToString()[..Math.Min(5, percentGapIDR.ToString().Length)]}% {(percentGapIDR < 0 ? "</u>" : "")}</b>\n" +
-                    $"currPrice={currentPrice?.IDR:n0} \nlast <b>({Math.Abs(LAST_HOUR)})</b> hours Price={lastPrice?.IDR:n0}";
-        }
-    if (!string.IsNullOrEmpty(pesan)) await _telegram.SendMessageAsync(pesan);
+                if (percentGapIDR <= GAP_TURUN || percentGapIDR >= GAP_NAIK)
+                    pesan += $"\n<b>{(percentGapIDR < 0 ? "<u>" : "")}IDR={percentGapIDR.ToString()[..Math.Min(5, percentGapIDR.ToString().Length)]}% {(percentGapIDR < 0 ? "</u>" : "")}</b>\n" +
+                        $"currPrice={currentPrice?.IDR:n0} \nlast <b>({Math.Abs(LAST_HOUR)})</b> hours Price={lastPrice?.IDR:n0}";
+            }
+        if (!string.IsNullOrEmpty(pesan)) await _telegram.SendMessageAsync(pesan);
+    }
 }
-
+catch (Exception ex)
+{
+    await _telegram.SendErrorAsync(DATE_NOW.ToString("yyyyMMddHHmmss") + "\nError Baca Data\n" + (ex.InnerException?.Message ?? ex.Message));
+}
 /* End Baca Data Coin */
 await _telegram.SendStatusAsync("Finish =>" + DATE_NOW.ToString("dd MMM yyyy HH:mm:ss") + $" >> " + DATE_NOW.ToString("yyyyMMddHHmmss"));
 
@@ -291,10 +304,6 @@ async Task<List<CoinPrice>?> GetCoinPriceAsync()
 
         return listCoinPrice;
     }
-    catch (Exception ex)
-    {
-        await _telegram.SendErrorAsync("Tgl =>" + DATE_NOW.ToString("dd MMM yyyy HH:mm:ss") + "\n" + (ex.InnerException?.Message ?? ex.Message));
-        throw;
-    }
+    catch { throw; }
 }
 
