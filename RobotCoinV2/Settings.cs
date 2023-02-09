@@ -30,7 +30,6 @@ namespace RobotCoinV2
 
         public Settings()
         {
-            //System.Environment.SetEnvironmentVariable("name", "val", EnvironmentVariableTarget.User);
             var builder = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory()).AddJsonFile("appsettings.json");
             var configuration = builder.Build();
 
@@ -44,6 +43,10 @@ namespace RobotCoinV2
 
             INDODAX_PRICE_URL ??= configuration["INDODAX_PRICE_URL"];
             NICEHASH_PRICE_URL ??= configuration["NICEHASH_PRICE_URL"];
+
+            GAP_NAIK = int.Parse(Environment.GetEnvironmentVariable("GAP_NAIK") ?? configuration["GAP_NAIK"] ?? "5");
+            GAP_TURUN = int.Parse(Environment.GetEnvironmentVariable("GAP_TURUN") ?? configuration["GAP_TURUN"] ?? "5") * -1;
+            LAST_HOUR = int.Parse(Environment.GetEnvironmentVariable("LAST_HOUR") ?? configuration["LAST_HOUR"] ?? "1") * -1;
 
             FavoriteCoinList = new();
             ListCoinNotif = new();
